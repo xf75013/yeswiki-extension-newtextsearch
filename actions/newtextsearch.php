@@ -9,7 +9,7 @@ Copyright 2004  Jean Christophe ANDRé
 Copyright 2004	Nicephore17
 Copyright 2019	XF75013
 
-08/02/2019 - v1.0 initial release
+10/02/2019 - v1.0 initial release
 
 INFORMATION D'UTILISATION
 Utilisation {{newtextsearch}} en lieu eet place de {{textsearch}}
@@ -51,31 +51,37 @@ if (!$paramPhrase)
 		  </span>
 		  </div>
 		  <span class="">
-		  <small>Un caract&eacute;re inconnu peut &ecirc;tre remplac&eacute; par « ? » plusieurs par « * »</small>
+		  <small>Un caractère inconnu peut être remplacé par « ? » plusieurs par « * »</small>
 		  </span><!-- /input-group --><br>';
 	echo "\n", $this->FormClose();
 }
 
 /* fonction nécessaire à l'affichage en contexte */
-function DisplaySearchResult($string, $phrase){
+function DisplaySearchResult($string, $phrase) {
 // function DisplaySearchResult($string, $lphrase){
 	// Convertit un texte HTML en texte brut
 	$string = preg_replace(",<[^>]*>,U", "", $string);
 	// ne pas oublier un < final non ferme
 	$string = str_replace('<', ' ', $string);
 	$query = rtrim(str_replace("+", " ", $phrase));
+	// on recherche toutes les occurences avec les ? et *
+	// [a-zA-Z]
+	// $query = str_replace("?", ".", $query);
+	// $query = str_replace("*", ".*", $query);
 	$qt = explode(" ", $query);
 	$num = count ($qt);
 	$cc = ceil(154 / $num);
-		for ($i = 0; $i < $num; $i++) {
-			$tab[$i] = preg_split("/($qt[$i])/i",$string,2, PREG_SPLIT_DELIM_CAPTURE);
-			if(count($tab[$i])>1){
-				$avant[$i] = substr($tab[$i][0],-$cc,$cc);
-				$apres[$i] = substr($tab[$i][2],0,$cc);
-				$string_re .= '<p style="width:50%;margin-top:0;margin-left:1rem;"><i style="color:silver;">[…]</i>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<i style="color:silver;">[…]</i></p> ';
-			}
+	if ($cc < 64 ) $cc = 64;
+	for ($i = 0; $i < $num; $i++) {
+		$qt[$i] = str_replace(array('*','?'), array('',''),$qt[$i]);
+		$tab[$i] = preg_split("/($qt[$i])/i", $string, 2, PREG_SPLIT_DELIM_CAPTURE);
+		if(count($tab[$i])>1){
+			$avant[$i] = substr($tab[$i][0],-$cc,$cc);
+			$apres[$i] = substr($tab[$i][2],0,$cc);
+			$string_re .= '<p style="width:50%;margin-top:0;margin-left:1rem;"><i style="color:silver;">[…]</i>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<i style="color:silver;">[…]</i></p> ';
 		}
-	 return $string_re;
+	}
+	return $string_re;
 }
 
 
