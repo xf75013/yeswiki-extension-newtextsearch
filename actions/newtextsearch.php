@@ -70,7 +70,7 @@ function DisplaySearchResult($string, $phrase) {
 	// $query = str_replace("*", ".*", $query);
 	$qt = explode(" ", $query);
 	$num = count ($qt);
-	$cc = ceil(154 / $num);
+	$cc = round((ceil(154 / $num))/2)*2;
 	if ($cc < 64 ) $cc = 64;
 	for ($i = 0; $i < $num; $i++) {
 		$qt[$i] = str_replace(array('*','?'), array('',''),$qt[$i]);
