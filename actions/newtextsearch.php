@@ -9,13 +9,11 @@ Copyright 2004  Jean Christophe ANDRé
 Copyright 2004	Nicephore17
 Copyright 2019	XF75013
 
-10/02/2019 - v1.0 initial release
+23/03/2019 - v1.1 initial release
 
 INFORMATION D'UTILISATION
 Utilisation {{newtextsearch}} en lieu eet place de {{textsearch}}
 */
-
-
 // On récupére ou initialise toutes le varible comme pour textsearch
 // label à afficher devant la zone de saisie
 $label = $this->GetParameter('label', _t('WHAT_YOU_SEARCH').'&nbsp;: ');
@@ -27,7 +25,6 @@ $button = $this->GetParameter('button', _t('SEARCH'));
 $phrase = $this->GetParameter('phrase', false);
 // séparateur entre les éléments trouvés
 $separator = $this->GetParameter('separator', false);
-
 
 // se souvenir si c'était :
 // -- un paramétre de l'action : {{textsearch phrase="Test"}}
@@ -57,36 +54,35 @@ if (!$paramPhrase)
 }
 
 /* fonction nécessaire à l'affichage en contexte */
-function DisplaySearchResult($string, $phrase) {
-// function DisplaySearchResult($string, $lphrase){
-	// Convertit un texte HTML en texte brut
-	$string = preg_replace(",<[^>]*>,U", "", $string);
-	// ne pas oublier un < final non ferme
-	$string = str_replace('<', ' ', $string);
-	$query = rtrim(str_replace("+", " ", $phrase));
-	// on recherche toutes les occurences avec les ? et *
-	// [a-zA-Z]
-	// $query = str_replace("?", ".", $query);
-	// $query = str_replace("*", ".*", $query);
-	$qt = explode(" ", $query);
-	$num = count ($qt);
-	$cc = round((ceil(154 / $num))/2)*2;
-	if ($cc < 64 ) $cc = 64;
-	for ($i = 0; $i < $num; $i++) {
-		$qt[$i] = str_replace(array('*','?'), array('',''),$qt[$i]);
-		$tab[$i] = preg_split("/($qt[$i])/i", $string, 2, PREG_SPLIT_DELIM_CAPTURE);
-		if(count($tab[$i])>1){
-			$avant[$i] = substr($tab[$i][0],-$cc,$cc);
-			$apres[$i] = substr($tab[$i][2],0,$cc);
-			$string_re .= '<p style="width:50%;margin-top:0;margin-left:1rem;"><i style="color:silver;">[…]</i>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<i style="color:silver;">[…]</i></p> ';
+if (!function_exists('DisplaySearchResult')) {
+	function DisplaySearchResult($string, $phrase) {
+		// Convertit un texte HTML en texte brut
+		$string = preg_replace(",<[^>]*>,U", "", $string);
+		// ne pas oublier un < final non ferme
+		$string = str_replace('<', ' ', $string);
+		$query = rtrim(str_replace("+", " ", $phrase));
+		// on recherche toutes les occurences avec les ? et *
+		$qt = explode(" ", $query);
+		$num = count($qt);
+		$cc = round((ceil(154 / $num))/2)*2;
+		if ($cc < 64 ) $cc = 64;
+		for ($i = 0; $i < $num; $i++) {
+			$qt[$i] = str_replace(array('*','?'), array('[a-zA-Z0-9]*','[a-zA-Z0-9]?'),$qt[$i]);
+			$tab[$i] = preg_split("/($qt[$i])/i", $string, 2, PREG_SPLIT_DELIM_CAPTURE);
+			if(count($tab[$i])>1){
+				$avant[$i] = substr($tab[$i][0],-$cc,$cc);
+				$apres[$i] = substr($tab[$i][2],0,$cc);
+				$string_re .= '<p style="width:50%;margin-top:0;margin-left:1rem;"><i style="color:silver;">[…]</i>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<i style="color:silver;">[…]</i></p> ';
+			}
 		}
+		return $string_re;
 	}
-	return $string_re;
 }
-
 
 // lancement de la recherche
 if ($phrase) {
+	// suppression de la limitation de temps d'execution du script
+	set_time_limit(0);
 
 	// Modification de caractère sépciaux
 	$phrase= str_replace(array('*','?'), array('%','_'),$phrase);
@@ -94,13 +90,13 @@ if ($phrase) {
 
 	// Blablabla SQL
 	$requestfull = 'SELECT body, tag FROM '.$prefixe.'yeswiki_pages
-				  LEFT JOIN '.$prefixe.'yeswiki_acls ON tag = page_tag AND privilege = "read"
-				  WHERE latest = "Y"
-				  AND ( list IS NULL OR list ="*" '.
-				  ($user ? 'OR owner = "'.$user['name'].'" OR list = "+" OR (list NOT LIKE "%!'.$user['name'].'%" AND list LIKE "%'.$user['name'].'")':'').')'.
-				  (AFFICHER_COMMENTAIRES ? '':'AND tag NOT LIKE "comment%"').
-				  ' AND body LIKE "%' . $phrase . '%"
-				  ORDER BY tag';
+					LEFT JOIN '.$prefixe.'yeswiki_acls ON tag = page_tag AND privilege = "read"
+					WHERE latest = "Y"
+					AND ( list IS NULL OR list ="*" '.
+					($user ? 'OR owner = "'.$user['name'].'" OR list = "+" OR (list NOT LIKE "%!'.$user['name'].'%" AND list LIKE "%'.$user['name'].'")':'').')'.
+					(AFFICHER_COMMENTAIRES ? '':'AND tag NOT LIKE "comment%"').
+					' AND body LIKE "%' . $phrase . '%"
+					ORDER BY tag';
 
 	// exécution de la requete
 	if ($resultat = $this->LoadAll($requestfull)) {
