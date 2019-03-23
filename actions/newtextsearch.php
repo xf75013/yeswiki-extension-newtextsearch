@@ -56,6 +56,8 @@ if (!$paramPhrase)
 /* fonction nécessaire à l'affichage en contexte */
 if (!function_exists('DisplaySearchResult')) {
 	function DisplaySearchResult($string, $phrase) {
+		// encodage des contenus
+		$encodag = 'UTF-8';
 		// Convertit un texte HTML en texte brut
 		$string = preg_replace(",<[^>]*>,U", "", $string);
 		// ne pas oublier un < final non ferme
@@ -64,14 +66,14 @@ if (!function_exists('DisplaySearchResult')) {
 		// on recherche toutes les occurences avec les ? et *
 		$qt = explode(" ", $query);
 		$num = count($qt);
-		$cc = round((ceil(154 / $num))/2)*2;
+		$cc = round(ceil(154/$num));
 		if ($cc < 64 ) $cc = 64;
 		for ($i = 0; $i < $num; $i++) {
 			$qt[$i] = str_replace(array('*','?'), array('[a-zA-Z0-9]*','[a-zA-Z0-9]?'),$qt[$i]);
 			$tab[$i] = preg_split("/($qt[$i])/i", $string, 2, PREG_SPLIT_DELIM_CAPTURE);
 			if(count($tab[$i])>1){
-				$avant[$i] = substr($tab[$i][0],-$cc,$cc);
-				$apres[$i] = substr($tab[$i][2],0,$cc);
+				$avant[$i] = mb_substr($tab[$i][0],-$cc,$cc,$encodag);
+				$apres[$i] = mb_substr($tab[$i][2],0,$cc,$encodag);
 				$string_re .= '<p style="width:50%;margin-top:0;margin-left:1rem;"><i style="color:silver;">[…]</i>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<i style="color:silver;">[…]</i></p> ';
 			}
 		}
@@ -98,7 +100,7 @@ if ($phrase) {
 					' AND body LIKE "%' . $phrase . '%"
 					ORDER BY tag';
 
-	// exécution de la requete
+	// exécution de la requête
 	if ($resultat = $this->LoadAll($requestfull)) {
 
 		// affichage des resultats
