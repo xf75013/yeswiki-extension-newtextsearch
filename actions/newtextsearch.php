@@ -7,9 +7,11 @@ Copyright 2002, 2003 David DELON
 Copyright 2002  Patrick PAUL
 Copyright 2004  Jean Christophe ANDRé
 Copyright 2004	Nicephore17
-Copyright 2019	XF75013
+Copyright 2019-2020	XF75013
 
-23/03/2019 - v1.1 initial release
+06/03/2020 - v1.5
+	v1		recherche dans le corps du texte
+	v1.5	+ recherche dans le nom de page et les tags
 
 INFORMATION D'UTILISATION
 Utilisation {{newtextsearch}} en lieu eet place de {{textsearch}}
@@ -74,7 +76,7 @@ if (!function_exists('DisplaySearchResult')) {
 			if(count($tab[$i])>1){
 				$avant[$i] = mb_substr($tab[$i][0],-$cc,$cc,$encodag);
 				$apres[$i] = mb_substr($tab[$i][2],0,$cc,$encodag);
-				$string_re .= '<p style="width:50%;margin-top:0;margin-left:1rem;"><i style="color:silver;">[…]</i>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<i style="color:silver;">[…]</i></p> ';
+				$string_re .= '<p class="pcherch"><span class="dfsusp">[…]</span>' . $avant[$i] . '<b>' . $tab[$i][1] . '</b>' . $apres[$i] . '<span class="dfsusp">[…]</span></p> ';
 			}
 		}
 		return $string_re;
@@ -90,15 +92,28 @@ if ($phrase) {
 	$phrase= str_replace(array('*','?'), array('%','_'),$phrase);
 	$phrase = addslashes($phrase);
 
+
 	// Blablabla SQL
-	$requestfull = 'SELECT body, tag FROM '.$prefixe.'yeswiki_pages
+	$requestfull =	'SELECT DISTINCT body, tag FROM '.$prefixe.'yeswiki_pages
+					LEFT JOIN '.$prefixe.'yeswiki_acls ON tag = page_tag AND privilege = "read" 
+					WHERE latest = "Y"
+					AND ( list IS NULL OR list ="*" '.
+					($user ? 'OR owner = "'.$user['name'].'" OR list = "+" OR (list NOT LIKE "%!'.$user['name'].'%" AND list LIKE "%'.$user['name'].'")':'').')'.
+					('AFFICHER_COMMENTAIRES' ? '':'AND tag NOT LIKE "comment%"').
+					(' AND body LIKE "%' . $phrase . '%"').
+					' UNION '. 
+					'SELECT DISTINCT body, tag FROM '.$prefixe.'yeswiki_pages
 					LEFT JOIN '.$prefixe.'yeswiki_acls ON tag = page_tag AND privilege = "read"
 					WHERE latest = "Y"
 					AND ( list IS NULL OR list ="*" '.
 					($user ? 'OR owner = "'.$user['name'].'" OR list = "+" OR (list NOT LIKE "%!'.$user['name'].'%" AND list LIKE "%'.$user['name'].'")':'').')'.
-					(AFFICHER_COMMENTAIRES ? '':'AND tag NOT LIKE "comment%"').
-					' AND body LIKE "%' . $phrase . '%"
-					ORDER BY tag';
+					('AFFICHER_COMMENTAIRES' ? '':'AND tag NOT LIKE "comment%"').
+					(' AND tag LIKE "%' . $phrase . '%"').
+					' UNION '. 
+					'SELECT DISTINCT value, resource FROM '.$prefixe.'yeswiki_triples '.
+					(' WHERE value LIKE "%' . $phrase . '%"').
+					(' AND resource IS NOT NULL ').
+					'ORDER BY tag';
 
 	// exécution de la requête
 	if ($resultat = $this->LoadAll($requestfull)) {
@@ -109,27 +124,30 @@ if ($phrase) {
 
 		// affichage des résultats en liste
 		if (empty($separator)) {
-			echo $this->Format('---- --- **Résultats de la recherche [""'.$phrase.'""] :---**');
-			echo ('<ul style="list-style-type: none;padding-left: 0;">');
+			echo $this->Format('---- --- **Résultats de la recherche « ""'.$phrase.'"" » :---**');
+			echo ('<ol class="cherchplus">');
 			foreach ($resultat as $i => $page)
 			{
 				if ($this->HasAccess("read", $page["tag"]))
 				{
-
 				$lien = $this->ComposeLinkToPage($page["tag"]);
-				echo '<li><h4 style="margin-bottom:0.2rem;">', $lien, "</h4>";
+				$ctllien = $this->IsWikiName($page["tag"]);
+				if ($ctllien = "0") {
+					$lien = $this->ComposeLinkToPage($page["resource"]);
+				}
+				echo '<li><h4>', $lien, "</h4>";
 				echo DisplaySearchResult($this->Format($page["body"]), $phrase);
 				echo "</li>\n";
 				}
 			}
-			echo ('</ul>');
+			echo ('</ol>');
 
 			// affichage des résultats en ligne
 		} else {
 			foreach ($resultat as $line) { echo ($this->ComposeLinkToPage($line['tag']).' ');};
 		};
 	} else {
-		echo $this->Format('---- --- **Désolé mais il n\'y a aucun de résultat pour votre recherche.**');
+		echo $this->Format('---- --- **Désolé mais il n\'y a aucun résultat pour votre recherche.**');
 	};
 };
 ?>

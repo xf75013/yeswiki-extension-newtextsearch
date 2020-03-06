@@ -1,0 +1,26 @@
+/* action newtextsearch */
+.cherchplus {
+	padding-left: 0;
+}
+
+ol.cherchplus li::marker {
+	color: grey;
+	font-weight: 100;
+}
+
+ol.cherchplus li h4 {
+	margin-bottom: 0.2rem;
+}
+
+.dfsusp {
+	color: silver;
+	font-style: italic;
+}
+
+.pcherch {
+	width: 50%;
+	margin-top: 0;
+	margin-left: 1rem;
+}
+
+/* fin action newtextsearch */
